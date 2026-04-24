@@ -142,7 +142,7 @@ def fetch_inmate_detail(sess, sysID, imgSysID):
             'maritalStatus':    get_val('Marital Status:'),
             'citizen':          get_val('Citizen:'),
             'countryOfBirth':   get_val('Country of Birth:'),
-            'permanentId':      get_val('Permanent ID:'),
+            'permanentId':      get_val('Permanent ID #:'),
             'stateId':          get_val('State ID:'),
             'policeCountyId':   get_val('Police/County ID:'),
             'fbiNum':           get_val('FBI #:'),
@@ -180,7 +180,7 @@ def fetch_inmate_detail(sess, sysID, imgSysID):
         charge_soup = BeautifulSoup(html[ci:] if ci >= 0 else '', 'html.parser')
         charges = []
         for row in charge_soup.find_all('tr', attrs={
-            'bgcolor': lambda v: v and v.upper() in ('#FFFFFF', '#CCCCFF')
+            'bgcolor': lambda v: v and v.upper() in ('#FFFFFF', '#EEEEEE', '#CCCCFF')
         }):
             cells = [td.get_text(strip=True) for td in row.find_all('td')]
             if len(cells) >= 4 and any(cells[1:4]):
