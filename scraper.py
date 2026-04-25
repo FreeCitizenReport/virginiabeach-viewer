@@ -148,10 +148,6 @@ def fetch_inmate_detail(sess, sysID, imgSysID):
             'fbiNum':           get_val('FBI #:'),
             'iceNum':           get_val('ICE #:'),
             'projectedRelease': get_val('Projected Release Date:'),
-            'housingSection':   get_val('Current Housing Section:'),
-            'housingBlock':     get_val('Current Housing Block:'),
-            'housingCell':      get_val('Current Housing Cell:'),
-            'housingBed':       get_val('Current Housing Bed:'),
         }
         mugshot_img_srcs = []
         for img in soup.find_all('img'):
@@ -199,7 +195,6 @@ def fetch_inmate_detail(sess, sysID, imgSysID):
                     'code':        cells[2] if len(cells) > 2 else '',
                     'description': cells[3] if len(cells) > 3 else '',
                     'grade':       cells[4] if len(cells) > 4 else '',
-                    'degree':      cells[6] if len(cells) > 6 else '',
                 })
         return {
             'sex':            sex,
