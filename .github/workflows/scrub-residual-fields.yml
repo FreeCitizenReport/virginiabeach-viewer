@@ -1,0 +1,74 @@
+name: Scrub residual housing/degree keys
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  scrub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scrub residual fields from data.json
+        run: |
+          python3 - <<'PY'
+          import json
+          with open('data.json','r',encoding='utf-8') as f:
+              data = json.load(f)
+          h_keys = ('housingSection','housingBlock','housingCell','housingBed')
+          h_keys_removed = 0
+          h_recs_changed = 0
+          d_keys_removed = 0
+          d_recs_changed = 0
+          for r in data:
+              demo = r.get('demographics')
+              if isinstance(demo, dict):
+                  changed = False
+                  for k in h_keys:
+                      if k in demo:
+                          del demo[k]
+                          h_keys_removed += 1
+                          changed = True
+                  if changed:
+                      h_recs_changed += 1
+              charges = r.get('charges')
+              if isinstance(charges, list):
+                  changed = False
+                  for c in charges:
+                      if isinstance(c, dict) and 'degree' in c:
+                          del c['degree']
+                          d_keys_removed += 1
+                          changed = True
+                  if changed:
+                      d_recs_changed += 1
+          with open('data.json','w',encoding='utf-8') as f:
+              json.dump(data, f, separators=(',', ':'), ensure_ascii=False)
+          print(f'housing keys removed: {h_keys_removed} across {h_recs_changed} records')
+          print(f'degree keys removed: {d_keys_removed} across {d_recs_changed} records')
+          PY
+      - name: Verify no residual keys remain
+        run: |
+          python3 - <<'PY'
+          import json
+          with open('data.json','r',encoding='utf-8') as f:
+              data = json.load(f)
+          h_keys = ('housingSection','housingBlock','housingCell','housingBed')
+          residual_h = sum(1 for r in data if isinstance(r.get('demographics'), dict) and any(k in r['demographics'] for k in h_keys))
+          residual_d = sum(1 for r in data if isinstance(r.get('charges'), list) and any(isinstance(c, dict) and 'degree' in c for c in r['charges']))
+          print(f'residual housing records: {residual_h}')
+          print(f'residual degree records: {residual_d}')
+          assert residual_h == 0 and residual_d == 0, 'scrub incomplete'
+          PY
+      - name: Commit and push if changed
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data.json
+          if git diff --cached --quiet; then
+            echo 'No changes to commit.'
+          else
+            git commit -m 'data: scrub residual housing*/degree keys (post-revert cleanup) [skip ci]'
+            git push
+          fi
