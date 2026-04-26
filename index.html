@@ -9,7 +9,7 @@
 <title>Virginia Beach — 2026 Booking Records</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+body { background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 /* HEADER */
 #header { background: #161b22; border-bottom: 1px solid #30363d; padding: 8px 14px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; flex-wrap: nowrap; }
 #header h1 { font-size: 14px; font-weight: 700; color: #f0f6fc; white-space: nowrap; }
@@ -325,12 +325,31 @@ select:focus, .filter-text:focus { outline: none; border-color: #1f6feb; }
   margin-top: 2px;
   font-family: Arial, sans-serif;
 }
+
+h1 .subtitle { display: block; font-size: 11px; color: #8b949e; font-weight: 400; }
+.view-toggle { display: flex; gap: 4px; margin-left: 8px; }
+.view-toggle button { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.view-toggle button.active { background: #58a6ff; color: white; border-color: #58a6ff; }
+#landing { display: none; flex: 1; padding: 16px; overflow-y: auto; background: #0d1117; }
+#landing.active { display: block; }
+#landing .recent-section h3 { color: #f0f6fc; font-size: 16px; margin: 8px 0 12px; border-bottom: 1px solid #30363d; padding-bottom: 6px; }
+#landing .recent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+#landing .recent-card { background: #161b22; border: 1px solid #30363d; border-radius: 6px; overflow: hidden; cursor: pointer; transition: border-color 0.15s; }
+#landing .recent-card:hover { border-color: #58a6ff; }
+#landing .recent-card .mug { background: #21262d; aspect-ratio: 4/5; background-size: cover; background-position: center top; }
+#landing .recent-card .card-info { padding: 8px 10px; }
+#landing .recent-card .card-name { color: #f0f6fc; font-size: 12px; font-weight: 600; margin-bottom: 4px; line-height: 1.3; }
+#landing .recent-card .card-meta { color: #8b949e; font-size: 11px; margin-bottom: 4px; }
+#landing .recent-card .card-pill { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 8px; }
+#landing .recent-card .card-pill.in { background: #f85149; color: white; }
+#landing .recent-card .card-pill.out { background: #2da44e; color: white; }
 </style>
 </head>
 <body>
 
 <div id="header">
-  <h1>🏛 Virginia Beach — Booking Records</h1>
+  <h1>Virginia Beach 2026 Bookings <span class="subtitle">Booking records from the Virginia Beach Sheriff's Office</span></h1>
+  <div class="view-toggle"><button id="btn-home" class="active" onclick="showHome()">Home</button><button id="btn-browse" onclick="showBrowse()">Browse</button></div>
   <div id="search-wrap">
     <input id="search-input" type="text" placeholder="Search by name…" autocomplete="off">
     <div id="search-results"></div>
@@ -339,15 +358,15 @@ select:focus, .filter-text:focus { outline: none; border-color: #1f6feb; }
     <input id="jump-input" type="number" placeholder="#" min="1">
     <button onclick="doJump()">Go</button>
   </div>
-  <button id="filter-toggle" onclick="toggleFilters()">⚙ Filters <span id="filter-count"></span></button>
+  <button id="filter-toggle" onclick="toggleFilters()">Filters <span id="filter-count"></span></button>
   <div id="nav-btns">
-    <button onclick="prev()">← Prev</button>
-    <button onclick="next()">Next →</button>
+    <button onclick="prev()">←</button>
+    <button onclick="next()">→</button>
   </div>
   <div id="counter">Record 1 of 651</div>
 </div>
 
-<div id="disclaimer">⚖️ All defendants are presumed innocent until proven guilty in a court of law.</div>
+<div id="disclaimer">Public records. An arrest is not a conviction. All individuals are presumed innocent.</div>
 
 <div id="filter-bar">
   <div class="filter-group">
@@ -415,6 +434,7 @@ select:focus, .filter-text:focus { outline: none; border-color: #1f6feb; }
   <div id="active-filters"></div>
 </div>
 
+<div id="landing" class="active"><div class="recent-section"><h3>Latest mugshots</h3><div id="recent-mugs" class="recent-grid"></div></div></div>
 <div id="main">
   <div id="loading-overlay"><div class="spin"></div><div class="loading-text">Loading records…</div></div>
 
@@ -503,6 +523,66 @@ select:focus, .filter-text:focus { outline: none; border-color: #1f6feb; }
 <div id="loading-bar" style="width:0%"></div>
 
 <script>
+// Visual uniformity: home grid + view toggle (RRJ/VB data shape)
+function _esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function renderLanding() {
+  if (typeof RECORDS === 'undefined' || !RECORDS) return;
+  var grid = document.getElementById('recent-mugs');
+  if (!grid) return;
+  var recs = RECORDS.filter(function(r){return r.mugshot;}).slice(0, 60);
+  var html = '';
+  recs.forEach(function(r){
+    var id = r.bookingNum || r.jacket || r.id || '';
+    var name = r.name || (((r.lastName||'') + ', ' + (r.firstName||'')).replace(/^, /, '').replace(/, $/, ''));
+    var bd = r.commitmentDate || r.bookingDate || r.bookDate || '';
+    if (bd && bd.length > 10) bd = bd.slice(0,10);
+    var released = (typeof _isReleased === 'function') ? _isReleased(r) : !!r.releaseDate;
+    html += '<div class="recent-card" data-id="' + _esc(id) + '">';
+    html += '<div class="mug" style="background-image:url(' + r.mugshot + ');"></div>';
+    html += '<div class="card-info">';
+    html += '<div class="card-name">' + _esc(name) + '</div>';
+    html += '<div class="card-meta">Booked ' + _esc(bd) + '</div>';
+    html += '<div class="card-pill ' + (released?'out':'in') + '">' + (released?'Released':'In Custody') + '</div>';
+    html += '</div></div>';
+  });
+  grid.innerHTML = html;
+  grid.querySelectorAll('.recent-card').forEach(function(el){
+    el.addEventListener('click', function(){
+      var id = el.getAttribute('data-id');
+      showBrowse();
+      if (typeof goToRecord === 'function') goToRecord(id);
+    });
+  });
+}
+function showHome() {
+  var l = document.getElementById('landing'); if (l) l.classList.add('active');
+  var m = document.getElementById('main'); if (m) m.style.display = 'none';
+  var bh = document.getElementById('btn-home'); if (bh) bh.classList.add('active');
+  var bb = document.getElementById('btn-browse'); if (bb) bb.classList.remove('active');
+  renderLanding();
+}
+function showBrowse() {
+  var l = document.getElementById('landing'); if (l) l.classList.remove('active');
+  var m = document.getElementById('main'); if (m) m.style.display = '';
+  var bh = document.getElementById('btn-home'); if (bh) bh.classList.remove('active');
+  var bb = document.getElementById('btn-browse'); if (bb) bb.classList.add('active');
+  if (typeof render === 'function') render();
+}
+function goToRecord(id) {
+  if (!id || typeof RECORDS === 'undefined' || !RECORDS) return;
+  var origIdx = -1;
+  for (var i = 0; i < RECORDS.length; i++) {
+    if (String(RECORDS[i].bookingNum) === String(id) || String(RECORDS[i].jacket) === String(id) || String(RECORDS[i].id) === String(id)) { origIdx = i; break; }
+  }
+  if (origIdx === -1) return;
+  if (typeof filteredIndices !== 'undefined' && filteredIndices) {
+    var fp = filteredIndices.indexOf(origIdx);
+    if (fp > -1) { if (typeof goTo === 'function') goTo(fp); }
+  }
+}
+(function(){ var m = document.getElementById('main'); if (m) m.style.display = 'none'; })();
+
+
     // Canonical sort helper (SORT_RULE.md): firstSeenAt DESC, bookDate DESC, jacket/id DESC
     function sortRecordsCanonical() {
       if (!window.RECORDS) return;
@@ -540,15 +620,15 @@ let RECORDS = [];
   function fetchFull() {
     return fetch('data.json?v=' + Date.now())
       .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-      .then(data => { RECORDS = data; sortRecordsCanonical(); bar.style.width = '100%'; if (overlay) overlay.classList.add('hidden'); applyFilters(); preloadBlobs(); });
+      .then(data => { RECORDS = data; sortRecordsCanonical(); bar.style.width = '100%'; if (overlay) overlay.classList.add('hidden'); applyFilters(); if (typeof renderLanding === 'function') renderLanding(); preloadBlobs(); });
   }
   fetch('latest.json?v=' + Date.now())
     .then(r => r.ok ? r.json() : Promise.reject())
-    .then(d => { RECORDS = d; sortRecordsCanonical(); bar.style.width = '10%'; applyFilters(); if (overlay) overlay.classList.add('hidden'); })
+    .then(d => { RECORDS = d; sortRecordsCanonical(); bar.style.width = '10%'; applyFilters(); if (typeof renderLanding === 'function') renderLanding(); if (overlay) overlay.classList.add('hidden'); })
     .catch(() => {})
     .then(() => fetch('recent.json?v=' + Date.now()))
     .then(r => r.ok ? r.json() : Promise.reject())
-    .then(d => { RECORDS = d; sortRecordsCanonical(); bar.style.width = '30%'; applyFilters(); if (overlay) overlay.classList.add('hidden'); })
+    .then(d => { RECORDS = d; sortRecordsCanonical(); bar.style.width = '30%'; applyFilters(); if (typeof renderLanding === 'function') renderLanding(); if (overlay) overlay.classList.add('hidden'); })
     .catch(() => {})
     .then(() => fetchFull())
     .catch(err => { bar.style.background = '#da3633'; console.error('Load failed:', err); });
@@ -558,7 +638,7 @@ function preloadBlobs() {
   let i = 0;
   const bar = document.getElementById('loading-bar');
   function next() {
-    if (i >= RECORDS.length) { bar.style.width = '100%'; setTimeout(() => bar.style.display = 'none', 600); applyFilters(); document.getElementById('loading-overlay')?.classList.add('hidden'); return; }
+    if (i >= RECORDS.length) { bar.style.width = '100%'; setTimeout(() => bar.style.display = 'none', 600); applyFilters(); if (typeof renderLanding === 'function') renderLanding(); document.getElementById('loading-overlay')?.classList.add('hidden'); return; }
     const rec = RECORDS[i++];
     bar.style.width = (i / RECORDS.length * 100).toFixed(1) + '%';
     if (rec.mugshot) {
@@ -581,7 +661,7 @@ function applyFilters() {
   const btn=document.getElementById('filter-toggle');if(active.length>0){document.getElementById('filter-count').textContent=' ('+active.length+')';btn.classList.add('active-filter');}else{document.getElementById('filter-count').textContent='';btn.classList.remove('active-filter');}
   if(filteredIndices.length>0){render();}else{document.getElementById('counter').innerHTML='<span style="color:#ff7b72">No matches</span>';}
 }
-function clearFilters(){['f-sex','f-race','f-county','f-custody','f-grade','f-court','f-disp'].forEach(id=>document.getElementById(id).value='');document.getElementById('f-charge').value='';applyFilters();}
+function clearFilters(){['f-sex','f-race','f-county','f-custody','f-grade','f-court','f-disp'].forEach(id=>document.getElementById(id).value='');document.getElementById('f-charge').value='';applyFilters(); if (typeof renderLanding === 'function') renderLanding();}
 function toggleFilters(){filtersOpen=!filtersOpen;document.getElementById('filter-bar').classList.toggle('open',filtersOpen);}
 function dispTagClass(d){if(!d)return"tag-other";var u=d.toUpperCase();if(u==="G"||u==="GA"||u==="GF"||u.includes("guilty"))return"tag-guilty";if(u==="NG"||u.includes("not guilty")||u.includes("acquit"))return"tag-ng";if(u==="D"||u.includes("dismiss"))return"tag-dismissed";if(u==="NP"||u.includes("nolle"))return"tag-nolle";return"tag-other";}
       function dispLabel(d){if(!d)return"";var MAP={"G":"Guilty","GA":"Guilty (Absentia)","GF":"Guilty (Finding)","NG":"Not Guilty","D":"Dismissed","NP":"Nolle Prosequi","PP":"Prepaid","C":"Continued","A":"Amended","R":"Reduced","W":"Waived","NC":"No Contest","SENT":"Sentenced","F":"Final"};return MAP[d.toUpperCase()]||d;}
