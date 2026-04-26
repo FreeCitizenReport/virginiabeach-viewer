@@ -506,7 +506,9 @@ select:focus, .filter-text:focus { outline: none; border-color: #1f6feb; }
     // Canonical sort helper (SORT_RULE.md): firstSeenAt DESC, bookDate DESC, jacket/id DESC
     function sortRecordsCanonical() {
       if (!window.RECORDS) return;
-            RECORDS = RECORDS.filter(function(r) { return r.mugshot; });
+            // Normalize: future-dated releaseDate (e.g., Henrico projected release) is NOT released — preserve in projectedReleaseDate, clear releaseDate so downstream "in custody" checks work
+    RECORDS.forEach(function(r){ if(r.releaseDate){ var m=String(r.releaseDate).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); var t=m?new Date(+m[3],+m[1]-1,+m[2]).getTime():Date.parse(r.releaseDate); if(!isNaN(t)&&t>Date.now()){ r.projectedReleaseDate=r.releaseDate; r.releaseDate=""; } } });
+    RECORDS = RECORDS.filter(function(r) { return r.mugshot; });
       RECORDS.sort(function(a, b) {
           // Canonical SORT_RULE.md: retrievedAt DESC with 24h clamp, mugshot filter, custody-agnostic
           function _pd(s) {
