@@ -506,16 +506,27 @@ select:focus, .filter-text:focus { outline: none; border-color: #1f6feb; }
     // Canonical sort helper (SORT_RULE.md): firstSeenAt DESC, bookDate DESC, jacket/id DESC
     function sortRecordsCanonical() {
       if (!window.RECORDS) return;
+            RECORDS = RECORDS.filter(function(r) { return r.mugshot; });
       RECORDS.sort(function(a, b) {
-        var fa = a.firstSeenAt || "";
-        var fb = b.firstSeenAt || "";
-        if (fa !== fb) return fb.localeCompare(fa);
-        var ba = a.bookDate || "";
-        var bb = b.bookDate || "";
-        if (ba !== bb) return bb.localeCompare(ba);
-        var ja = a.jacket || a.id || "";
-        var jb = b.jacket || b.id || "";
-        return jb.localeCompare(ja);
+          // Canonical SORT_RULE.md: retrievedAt DESC with 24h clamp, mugshot filter, custody-agnostic
+          function _pd(s) {
+              if (!s) return NaN;
+              var mm = String(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+              return mm ? new Date(+mm[3], +mm[1]-1, +mm[2]).getTime() : Date.parse(s);
+          }
+          var fa = a.firstSeenAt ? Date.parse(a.firstSeenAt) : NaN;
+          var fb = b.firstSeenAt ? Date.parse(b.firstSeenAt) : NaN;
+          var ba = _pd(a.bookDate), bb = _pd(b.bookDate);
+          var capA = isNaN(ba) ? Infinity : ba + 86400000;
+          var capB = isNaN(bb) ? Infinity : bb + 86400000;
+          var ra = isNaN(fa) ? (isNaN(ba) ? 0 : ba) : Math.min(fa, capA);
+          var rb = isNaN(fb) ? (isNaN(bb) ? 0 : bb) : Math.min(fb, capB);
+          if (ra !== rb) return rb - ra;
+          var bd = (isNaN(bb) ? 0 : bb) - (isNaN(ba) ? 0 : ba);
+          if (bd) return bd;
+          var nameA = (a.name || ((a.lastName||"") + ", " + (a.firstName||""))).toUpperCase();
+          var nameB = (b.name || ((b.lastName||"") + ", " + (b.firstName||""))).toUpperCase();
+          return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
       });
     }
 
