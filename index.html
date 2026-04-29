@@ -544,7 +544,7 @@ function renderLanding() {
     html += '<div class="card-info">';
     html += '<div class="card-name">' + _esc(name) + '</div>';
     html += '<div class="card-meta">Booked ' + _esc(bd) + '</div>';
-    if (r.charges && r.charges.length > 0) html += '<div class="card-charge">' + _esc(r.charges[0]) + (r.charges.length > 1 ? ' <span class="charge-more">+' + (r.charges.length - 1) + '</span>' : '') + '</div>';
+    if (r.charges && r.charges.length > 0) html += '<div class="card-charge">' + _esc(typeof r.charges[0] === 'string' ? r.charges[0] : (r.charges[0] && r.charges[0].description || 'Unknown Charge')) + (r.charges.length > 1 ? ' <span class="charge-more">+' + (r.charges.length - 1) + '</span>' : '') + '</div>';
     html += '<div class="card-pill ' + (released?'out':'in') + '">' + (released?'Released':'In Custody') + '</div>';
     html += '</div></div>';
   });
