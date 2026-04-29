@@ -343,6 +343,8 @@ h1 .subtitle { display: block; font-size: 11px; color: #8b949e; font-weight: 400
 #landing .recent-card .card-pill { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 8px; }
 #landing .recent-card .card-pill.in { background: #f85149; color: white; }
 #landing .recent-card .card-pill.out { background: #2da44e; color: white; }
+.card-charge { font-size: 11px; color: #f0883e; margin-top: 4px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.charge-more { display: inline-block; background: rgba(240,136,62,0.18); color: #f0883e; padding: 0 5px; border-radius: 8px; font-size: 9px; font-weight: 600; margin-left: 2px; vertical-align: middle; }
 </style>
 </head>
 <body>
@@ -542,6 +544,7 @@ function renderLanding() {
     html += '<div class="card-info">';
     html += '<div class="card-name">' + _esc(name) + '</div>';
     html += '<div class="card-meta">Booked ' + _esc(bd) + '</div>';
+    if (r.charges && r.charges.length > 0) html += '<div class="card-charge">' + _esc(r.charges[0]) + (r.charges.length > 1 ? ' <span class="charge-more">+' + (r.charges.length - 1) + '</span>' : '') + '</div>';
     html += '<div class="card-pill ' + (released?'out':'in') + '">' + (released?'Released':'In Custody') + '</div>';
     html += '</div></div>';
   });
