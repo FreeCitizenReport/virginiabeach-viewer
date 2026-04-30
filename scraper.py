@@ -16,6 +16,31 @@ OCIS_API   = OCIS_BASE + '/ocis-rest/api/public/'
 PLACEHOLDER_IMAGES = set()  # VB: seeded empty, auto-learned at runtime
 
 
+
+# === SUFFIX-INVERSION FIX (shared across all scrapers) ===
+import re as _suffix_re
+_INVERTED_SUFFIX_RE = _suffix_re.compile(
+    r"^\s*(JR|SR|II|III|IV)\.?\s*,\s*(.+?)\s*$", _suffix_re.IGNORECASE
+)
+def fix_inverted_suffix_name(name):
+    """Repair a name where a Roman-numeral / Jr / Sr suffix was filed
+    as if it were the surname (e.g. ``"IV, JOHN ANTHONY SCHWAB"`` -> 
+    ``"SCHWAB, JOHN ANTHONY IV"``). Idempotent: already-correct names
+    pass through unchanged. Safe to call defensively at every name-
+    construction site to keep behaviour consistent across scrapers.
+    """
+    if not name or not isinstance(name, str):
+        return name
+    m = _INVERTED_SUFFIX_RE.match(name)
+    if not m:
+        return name
+    suffix = m.group(1).upper()
+    parts = m.group(2).strip().split()
+    if len(parts) < 2:
+        return name
+    return parts[-1] + ", " + " ".join(parts[:-1]) + " " + suffix
+# === END SUFFIX-INVERSION FIX ===
+
 def _bytes_sig(content):
     """Return (byte_length, byte_sum) signature for image bytes."""
     return (len(content), sum(content) & 0xFFFFFFFF)
